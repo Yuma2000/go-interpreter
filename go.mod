@@ -1,3 +1,3 @@
-module github.com/Yuma2000/go-interpreter
+module monkey
 
 go 1.21.1
