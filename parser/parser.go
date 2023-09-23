@@ -5,6 +5,7 @@ import (
 	"monkey/ast"
 	"monkey/lexer"
 	"monkey/token"
+	"strconv"
 )
 
 const (
@@ -43,6 +44,7 @@ func New(l *lexer.Lexer) *Parser {
 	// 前置構文解析関数を登録する．
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 
 	// 2つトークンを読み込む。curTokenとpeekTokenの両方がセットされる。
 	p.nextToken()
@@ -89,6 +91,9 @@ func (p *Parser) peekError(t token.TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
+// パーサの現在のトークンからAST（抽象構文木）のプログラムを解析し、
+// それを返す．現在のトークンがEOFに達するまでトークンを解析し続け、
+// それに基づいてASTのステートメントを生成する．
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
@@ -179,6 +184,29 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+// parseIntegerLiteral は現在のトークンが整数リテラルを示している場合，
+// それを解析して対応するASTの整数リテラルノードを生成して返す．
+// もし整数として解析できなければ，エラーメッセージをパーサのエラーリストに追加し，
+// nilを返す．
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	// 文字列をint64に変換する．
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+
+	return lit
+}
+
+// registerPrefix は与えられたトークンタイプに対応する前置構文解析関数を登録する．
+// この関数は，パーサが特定のトークンタイプと遭遇したときに呼び出すべき解析関数を
+// 指定するために使われる．
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
