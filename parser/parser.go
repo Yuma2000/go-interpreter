@@ -31,6 +31,7 @@ type Parser struct {
 	curToken  token.Token
 	peekToken token.Token
 
+	// パーサが特定のトークンタイプと遭遇したときに呼び出すべき解析関数を指定するためのマップ．
 	prefixParseFns map[token.TokenType]prefixParseFn
 	infixParseFns  map[token.TokenType]infixParseFn
 }
@@ -45,6 +46,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	// 2つトークンを読み込む。curTokenとpeekTokenの両方がセットされる。
 	p.nextToken()
@@ -79,7 +82,6 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	return false
 }
 
-// p.errorsを返す．
 func (p *Parser) Errors() []string {
 	return p.errors
 }
@@ -88,6 +90,12 @@ func (p *Parser) Errors() []string {
 func (p *Parser) peekError(t token.TokenType) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
 		t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
+}
+
+// この関数は前置構文解析関数が見つからなかった場合に呼び出され，エラー文をp.errorsに追加する．
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
 }
 
@@ -166,11 +174,11 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
-// 式を構文解析する．
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// 前置構文解析関数を取得する．
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	// 前置構文解析関数を実行する．
@@ -204,9 +212,23 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return lit
 }
 
-// registerPrefix は与えられたトークンタイプに対応する前置構文解析関数を登録する．
-// この関数は，パーサが特定のトークンタイプと遭遇したときに呼び出すべき解析関数を
-// 指定するために使われる．
+// parsePrefixExpression は前置演算子のASTノードを作る．
+// その後，前置演算子の右側にある式を解析する．
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	p.nextToken()
+
+	// 前置演算子の右側にある式を解析する．
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
+}
+
+// registerPrefix は与えられたトークンタイプに対応する前置構文解析関数を p.prefixParseFns に登録する．
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
