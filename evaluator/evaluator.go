@@ -17,13 +17,17 @@ func Eval(node ast.Node) object.Object {
 
 	// 文
 	case *ast.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node)
 		
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+
+	case *ast.ReturnStatement:
+		val := Eval(node.ReturnValue)
+		return &object.ReturnValue{Value: val}
 	
 	// 式
 	case *ast.IntegerLiteral:
@@ -46,6 +50,36 @@ func Eval(node ast.Node) object.Object {
 	}
 
 	return nil
+}
+
+func evalProgram(program *ast.Program) object.Object {
+	var result object.Object
+
+	// プログラムの文を順番に評価する．
+	for _, statement := range program.Statements {
+		result = Eval(statement)
+
+		// return文が実行されたら，その値を返す．
+		if returnValue, ok := result.(*object.ReturnValue); ok {
+			return returnValue.Value
+		}
+	}
+
+	return result
+}
+
+func evalBlockStatement(block *ast.BlockStatement) object.Object {
+	var result object.Object
+
+	for _, statement := range block.Statements {
+		result = Eval(statement)
+
+		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+			return result
+		}
+	}
+
+	return result
 }
 
 // nativeBoolToBooleanObject 関数は、Goのbool値をMonkeyのBooleanオブジェクトに変換する．
@@ -167,6 +201,11 @@ func evalStatements(stmts []ast.Statement) object.Object {
 
 	for _, stmt := range stmts {
 		result = Eval(stmt)
+
+		// return文が実行されたら，その値を返す．
+		if returnValue, ok := result.(*object.ReturnValue); ok {
+			return returnValue.Value
+		}
 	}
 
 	return result
