@@ -71,6 +71,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
+	p.registerPrefix(token.WHILE, p.parseWhileExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -531,6 +532,29 @@ func (p *Parser) parseMacroLiteral() ast.Expression	{
 	lit.Body = p.parseBlockStatement()
 
 	return lit
+}
+
+func (p *Parser) parseWhileExpression() ast.Expression {
+	expression := &ast.WhileExpression{Token: p.curToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	expression.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expression.Body = p.parseBlockStatement()
+
+	return expression
 }
 
 // registerPrefix は与えられたトークンタイプに対応する前置構文解析関数を p.prefixParseFns に登録する．

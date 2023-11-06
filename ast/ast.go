@@ -365,3 +365,22 @@ func (ml *MacroLiteral) String() string {
 
 	return out.String()
 }
+
+type WhileExpression struct {
+	Token     token.Token // 'while' トークン
+	Condition Expression  // 条件式
+	Body      *BlockStatement
+}
+
+func (we *WhileExpression) expressionNode()      {}
+func (we *WhileExpression) TokenLiteral() string { return we.Token.Literal }
+func (we *WhileExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("while")
+	out.WriteString(we.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(we.Body.String())
+
+	return out.String()
+}

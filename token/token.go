@@ -44,6 +44,7 @@ const (
 	FALSE    = "FALSE"
 	IF       = "IF"
 	ELSE     = "ELSE"
+	WHILE    = "WHILE"
 	RETURN   = "RETURN"
 	MACRO    = "MACRO"
 )
@@ -54,12 +55,13 @@ type Token struct {
 }
 
 var keywords = map[string]TokenType{
-	"fn":  FUNCTION,
-	"let": LET,
+	"fn":     FUNCTION,
+	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,
 	"if":     IF,
 	"else":   ELSE,
+	"while":  WHILE,
 	"return": RETURN,
 	"macro":  MACRO,
 }
