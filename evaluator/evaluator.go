@@ -144,6 +144,7 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	return result
 }
 
+// object.Objectの配列を返すように変更
 func evalBlockStatement(
 	block *ast.BlockStatement,
 	env *object.Environment,
@@ -451,26 +452,24 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	return pair.Value
 }
 
-func evalWhileExpression(
-	we *ast.WhileExpression,
-	env *object.Environment,
-) object.Object {
-	condition := Eval(we.Condition, env)
-	if isError(condition) {
-        return condition
-    }
+func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) object.Object {
+    var evaluated object.Object
 
-    for isTruthy(condition) {
-        evaluated := Eval(we.Body, env)
-        if isError(evaluated) {
-            return evaluated
-        }
-
-        condition = Eval(we.Condition, env)
+    for {
+        condition := Eval(we.Condition, env)
         if isError(condition) {
             return condition
         }
+
+        if !isTruthy(condition) {
+            break
+        }
+
+        evaluated = Eval(we.Body, env)
+        if isError(evaluated) {
+            return evaluated
+        }
     }
 
-    return NULL
+    return evaluated
 }
