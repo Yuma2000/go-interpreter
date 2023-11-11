@@ -119,6 +119,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.HashLiteral:
 		return evalHashLiteral(node, env)
 
+	case *ast.WhileExpression:
+		return evalWhileExpression(node, env)
 	}
 
 	return nil
@@ -142,6 +144,7 @@ func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	return result
 }
 
+// object.Objectの配列を返すように変更
 func evalBlockStatement(
 	block *ast.BlockStatement,
 	env *object.Environment,
@@ -447,4 +450,26 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	}
 
 	return pair.Value
+}
+
+func evalWhileExpression(we *ast.WhileExpression, env *object.Environment) object.Object {
+    var evaluated object.Object
+
+    for {
+        condition := Eval(we.Condition, env)
+        if isError(condition) {
+            return condition
+        }
+
+        if !isTruthy(condition) {
+            break
+        }
+
+        evaluated = Eval(we.Body, env)
+        if isError(evaluated) {
+            return evaluated
+        }
+    }
+
+    return evaluated
 }

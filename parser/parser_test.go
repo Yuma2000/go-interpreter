@@ -896,6 +896,50 @@ func TestMacroLiteralParsing(t *testing.T) {
 	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
 }
 
+func TestWhileExpression(t *testing.T) {
+	input := `while (x < y) { x }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d",
+			1, len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
+			program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.WhileExpression)
+	if !ok {
+		t.Fatalf("stmt is not ast.WhileExpression. got=%T", stmt.Expression)
+	}
+
+	if !testInfixExpression(t, exp.Condition, "x", "<", "y") {
+		return
+	}
+
+	if len(exp.Body.Statements) != 1 {
+		t.Errorf("exp.Body.Statements is not 1 statements. got=%d\n",
+			len(exp.Body.Statements))
+	}
+
+	bodyStmt, ok := exp.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("exp.Body.Statements[0] is not ast.ExpressionStatement. got=%T",
+			exp.Body.Statements[0])
+	}
+
+	if !testIdentifier(t, bodyStmt.Expression, "x") {
+		return
+	}
+}
+
 func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 	if s.TokenLiteral() != "let" {
 		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
